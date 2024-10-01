@@ -526,7 +526,7 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                     // all the code specific to contenteditable divs
                     var _processingPaste = false;
                     /* istanbul ignore next: phantom js cannot test this for some reason */
-                    var processpaste = function(text) {
+                    var processpaste = function(text, textFormat, rtfContent) {
                        var _isOneNote = text!==undefined? text.match(/content=["']*OneNote.File/i): false;
                         /* istanbul ignore else: don't care if nothing pasted */
                         //console.log(text);
@@ -688,7 +688,7 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                 return result;
                             }).replace(/\n|\r\n|\r/g, '<br />').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
 
-                            if(_pasteHandler) text = _pasteHandler(scope, {$html: text}) || text;
+                            if(_pasteHandler) text = _pasteHandler(scope, {$html: text, $textFormat: textFormat, $rtfContent: rtfContent}) || text;
 
                             // turn span vertical-align:super into <sup></sup>
                             text = text.replace(/<span style=("|')([^<]*?)vertical-align\s*:\s*super;?([^>]*?)("|')>([^<]+?)<\/span>/g, "<sup style='$2$3'>$5</sup>");
@@ -736,12 +736,20 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                 _types += " " + clipboardData.types[_t];
                             }
                             /* istanbul ignore next: browser tests */
-                            if (/text\/html/i.test(_types)) {
+
+                            var textFormat, rtfContent;
+                            if (/text\/rtf/i.test(_types)) {
+                                textFormat = 'text/rtf';
+                                rtfContent = clipboardData.getData('text/rtf');
+                                pastedContent = clipboardData.getData('text/html');
+                            } else if (/text\/html/i.test(_types)) {
+                                textFormat = 'text/html';
                                 pastedContent = clipboardData.getData('text/html');
                             } else if (/text\/plain/i.test(_types)) {
+                                textFormat = 'text/plain';
                                 pastedContent = clipboardData.getData('text/plain');
                             }
-                            processpaste(pastedContent);
+                            processpaste(pastedContent, textFormat, rtfContent);
                             e.stopPropagation();
                             e.preventDefault();
                             return false;

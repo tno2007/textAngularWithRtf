@@ -3459,15 +3459,37 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                             var textFormat, rtfContent;
                             if (/text\/rtf/i.test(_types)) {
                                 textFormat = 'text/rtf';
-                                rtfContent = clipboardData.getData('text/rtf');
                                 pastedContent = clipboardData.getData('text/html');
+                                rtfContent = clipboardData.getData('text/rtf');
                             } else if (/text\/html/i.test(_types)) {
                                 textFormat = 'text/html';
                                 pastedContent = clipboardData.getData('text/html');
                             } else if (/text\/plain/i.test(_types)) {
                                 textFormat = 'text/plain';
                                 pastedContent = clipboardData.getData('text/plain');
+                            } else if (/Files/i.test(_types)) {
+                                textFormat = 'Files';
+                                pastedContent = clipboardData.getData('Files');
+                                // find the img in clipboard
+                                var items = clipboardData.items;
+
+                                var fileItem = Array.from(items).find(function(item) {
+                                    return item.kind.indexOf('file') !== -1;
+                                });
+
+                                // find clipboard item of kind file
+                                var blob = fileItem.getAsFile();
+
+                                var reader = new FileReader();
+                                reader.onload = function(event) {
+                                    var imgElement = '<img src="' + event.target.result + '">';
+                                    processpaste(imgElement);
+                                };
+                                reader.readAsDataURL(blob);
                             }
+
+                            // console.log('clipboardData.types:', clipboardData.types);
+
                             processpaste(pastedContent, textFormat, rtfContent);
                             e.stopPropagation();
                             e.preventDefault();

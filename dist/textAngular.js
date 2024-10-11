@@ -2,7 +2,7 @@
 @license textAngular
 Author : Austin Anderson
 License : 2013 MIT
-Version 1.5.16
+Version 1.5.17
 
 See README.md or https://github.com/fraywing/textAngular/wiki for requirements and use.
 */
@@ -1856,9 +1856,25 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                         '<' + attrs.taDefaultWrap + '>&nbsp;</' + attrs.taDefaultWrap + '>';
             }
 
+            var readSyncDataURL = function (file) {
+                var url = URL.createObjectURL(file);
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", url, false); //Synchronous XMLHttpRequest on Object URL
+                xhr.overrideMimeType("text/plain; charset=x-user-defined"); //Override MIME Type to prevent UTF-8 related errors
+                xhr.send();
+                URL.revokeObjectURL(url);
+                var returnText = "";
+                for (var i = 0; i < xhr.responseText.length; i++) {
+                  returnText += String.fromCharCode(
+                    xhr.responseText.charCodeAt(i) & 0xff
+                  );
+                } //remove higher byte
+                return "data:" + file.type + ";base64," + btoa(returnText);
+            };
+
             /* istanbul ignore else */
             if(!ngModelOptions.$options) ngModelOptions.$options = {}; // ng-model-options support
-
+            
             var _ensureContentWrapped = function(value) {
                 if (_taBlankTest(value)) return value;
                 var domTest = angular.element("<div>" + value + "</div>");
@@ -1908,11 +1924,9 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                             } else {
                                 value += node.outerHTML;
                             }
-                            //console.log(value);
                         }
                     }
                 }
-                //console.log(value);
                 return value;
             };
 
@@ -2215,10 +2229,9 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                     // all the code specific to contenteditable divs
                     var _processingPaste = false;
                     /* istanbul ignore next: phantom js cannot test this for some reason */
-                    var processpaste = function(text, textFormat, rtfContent) {
+                    var processpaste = function(text, textPlainContent, textRtfContent) {
                        var _isOneNote = text!==undefined? text.match(/content=["']*OneNote.File/i): false;
                         /* istanbul ignore else: don't care if nothing pasted */
-                        //console.log(text);
                         if(text && text.trim().length){
                             // test paste from word/microsoft product
                             if(text.match(/class=["']*Mso(Normal|List)/i) || text.match(/content=["']*Word.Document/i) || text.match(/content=["']*OneNote.File/i)){
@@ -2226,6 +2239,7 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                 if(!textFragment) textFragment = text;
                                 else textFragment = textFragment[1];
                                 textFragment = textFragment.replace(/<o:p>[\s\S]*?<\/o:p>/ig, '').replace(/class=(["']|)MsoNormal(["']|)/ig, '');
+
                                 var dom = angular.element("<div>" + textFragment + "</div>");
                                 var targetDom = angular.element("<div></div>");
                                 var _list = {
@@ -2250,9 +2264,15 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                 };
                                 for(var i = 0; i <= dom[0].childNodes.length; i++){
                                     if(!dom[0].childNodes[i] || dom[0].childNodes[i].nodeName === "#text"){
+
+
+
                                         continue;
                                     } else {
                                         var tagName = dom[0].childNodes[i].tagName.toLowerCase();
+
+
+
                                         if(tagName !== 'p' &&
                                             tagName !== 'ul' &&
                                             tagName !== 'h1' &&
@@ -2262,10 +2282,14 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                             tagName !== 'h5' &&
                                             tagName !== 'h6' &&
                                             tagName !== 'table'){
+
                                             continue;
                                         }
                                     }
                                     var el = angular.element(dom[0].childNodes[i]);
+
+
+
                                     var _listMatch = (el.attr('class') || '').match(/MsoList(Bullet|Number|Paragraph)(CxSp(First|Middle|Last)|)/i);
 
                                     if(_listMatch){
@@ -2315,6 +2339,8 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                         _resetList(false);
                                         targetDom.append(el);
                                     }
+
+
                                 }
                                 var _unwrapElement = function(node){
                                     node = angular.element(node);
@@ -2377,13 +2403,12 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                 return result;
                             }).replace(/\n|\r\n|\r/g, '<br />').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
 
-                            if(_pasteHandler) text = _pasteHandler(scope, {$html: text, $textFormat: textFormat, $rtfContent: rtfContent}) || text;
+                            if(_pasteHandler) text = _pasteHandler(scope, {$html: text, $textPlainContent: textPlainContent, $textRtfContent: textRtfContent}) || text;
 
                             // turn span vertical-align:super into <sup></sup>
                             text = text.replace(/<span style=("|')([^<]*?)vertical-align\s*:\s*super;?([^>]*?)("|')>([^<]+?)<\/span>/g, "<sup style='$2$3'>$5</sup>");
 
                             text = taSanitize(text, '', _disableSanitizer);
-                            //console.log('DONE\n', text);
 
                             taSelection.insertHtml(text, element[0]);
                             $timeout(function(){
@@ -2413,6 +2438,7 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                         var clipboardData = (e.originalEvent || e).clipboardData;
                         /* istanbul ignore next: Handle legacy IE paste */
                         if ( !clipboardData && window.clipboardData && window.clipboardData.getData ){
+                            console.log("IE");
                             pastedContent = window.clipboardData.getData("Text");
                             processpaste(pastedContent);
                             e.stopPropagation();
@@ -2420,51 +2446,71 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                             return false;
                         }
                         if (clipboardData && clipboardData.getData && clipboardData.types.length > 0) {// Webkit - get data from clipboard, put into editdiv, cleanup, then cancel event
+                            
                             var _types = "";
                             for(var _t = 0; _t < clipboardData.types.length; _t++){
                                 _types += " " + clipboardData.types[_t];
                             }
                             /* istanbul ignore next: browser tests */
 
-                            var textFormat, rtfContent;
-                            if (/text\/rtf/i.test(_types)) {
-                                textFormat = 'text/rtf';
-                                pastedContent = clipboardData.getData('text/html');
-                                rtfContent = clipboardData.getData('text/rtf');
-                            } else if (/text\/html/i.test(_types)) {
-                                textFormat = 'text/html';
-                                pastedContent = clipboardData.getData('text/html');
-                            } else if (/text\/plain/i.test(_types)) {
-                                textFormat = 'text/plain';
-                                pastedContent = clipboardData.getData('text/plain');
-                            } else if (/Files/i.test(_types)) {
-                                textFormat = 'Files';
-                                pastedContent = clipboardData.getData('Files');
-                                // find the img in clipboard
-                                var items = clipboardData.items;
+                            var textHtmlContent, textRtfContent, textPlainContent, filesContent, images;
 
-                                var fileItem = Array.from(items).find(function(item) {
-                                    return item.kind.indexOf('file') !== -1;
-                                });
-
-                                // find clipboard item of kind file
-                                var blob = fileItem.getAsFile();
-
-                                var reader = new FileReader();
-                                reader.onload = function(event) {
-                                    var imgElement = '<img src="' + event.target.result + '">';
-                                    processpaste(imgElement);
-                                };
-                                reader.readAsDataURL(blob);
+                            // capture html content
+                            if (/text\/html/i.test(_types))
+                                textHtmlContent = clipboardData.getData("text/html");
+                    
+                            // capture rtf content
+                            if (/text\/rtf/i.test(_types))
+                                textRtfContent = clipboardData.getData("text/rtf");
+                    
+                            // capture plain text content
+                            if (/text\/plain/i.test(_types))
+                                textPlainContent = clipboardData.getData("text/plain");
+                    
+                            // capture files content
+                            if (/Files/i.test(_types)) {
+                                filesContent = clipboardData.files;
+                    
+                                // create a div element to store images
+                                images = document.createElement("div");
+                    
+                                // make sure the files are images
+                                for (var i = 0; i < filesContent.length; i++) {
+                                    var file = filesContent[i];
+                        
+                                    if (!file.type.match("image/*")) {
+                                        console.log("File '" + file.name + "' is not an image");
+                                        continue;
+                                    }
+                        
+                                    var dataUri = readSyncDataURL(file);
+                        
+                                    var img = document.createElement("img");
+                                    img.src = dataUri;
+                                    images.appendChild(img);
+                                }
                             }
 
-                            // console.log('clipboardData.types:', clipboardData.types);
+                            // handle images only
+                            // do we have images present?
+                            if (images && !textHtmlContent && !textPlainContent) {
+                                textHtmlContent = images.innerHTML;
+                            }
 
-                            processpaste(pastedContent, textFormat, rtfContent);
+                            // handle text only
+                            if (!textHtmlContent && textPlainContent) {
+                                // wrap the text in a div
+                                textHtmlContent = "<span>" + textPlainContent + "</span>";
+                            }
+
+                            processpaste(textHtmlContent, textPlainContent, textRtfContent);
                             e.stopPropagation();
                             e.preventDefault();
                             return false;
                         } else {// Everything else - empty editdiv and allow browser to paste content into it, then cleanup
+
+                            console.log("Everything else");
+
                             var _savedSelection = rangy.saveSelection(),
                                 _tempDiv = angular.element('<div class="ta-hidden-input" contenteditable="true"></div>');
                             $document.find('body').append(_tempDiv);
@@ -3310,10 +3356,10 @@ textAngular.directive("textAngular", [
                 }
 
                 if(attrs.taPaste){
-                    scope._pasteHandler = function(_html, _textFormat, _rtfContent){
-                        return $parse(attrs.taPaste)(scope.$parent, {$html: _html, $textFormat: _textFormat, $rtfContent: _rtfContent});
+                    scope._pasteHandler = function(_html, _textPlainContent, _textRtfContent){
+                        return $parse(attrs.taPaste)(scope.$parent, {$html: _html, $textPlainContent: _textPlainContent, $textRtfContent: _textRtfContent});
                     };
-                    scope.displayElements.text.attr('ta-paste', '_pasteHandler($html, $textFormat, $rtfContent)');
+                    scope.displayElements.text.attr('ta-paste', '_pasteHandler($html, $textPlainContent, $textRtfContent)');
                 }
 
                 // compile the scope with the text and html elements only - if we do this with the main element it causes a compile loop

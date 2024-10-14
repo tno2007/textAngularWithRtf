@@ -53,11 +53,13 @@
     "karma-jasmine": "^1.0.2",
     "karma-phantomjs-launcher": "^1.0.2",
     "karma-script-launcher": "^1.0.0",
+    "live-server": "^1.2.2",
     "phantomjs": "^2.1.7",
     "phantomjs-polyfill": "0.0.2"
   },
   "scripts": {
-    "test": "bower install && grunt travis-test --verbose"
+    "test": "bower install && grunt travis-test --verbose",
+    "dev": "live-server --port=8001 --no-browser"
   },
   "repository": {
     "type": "git",

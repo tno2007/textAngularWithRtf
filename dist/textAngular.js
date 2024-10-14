@@ -1628,6 +1628,7 @@ function($document, taDOM, $log){
         },
 
         transferNodeAttributes: function(source, target){
+            if(!source.attributes) return ;
             for(var i = 0; i < source.attributes.length; i++) target.setAttribute(source.attributes[i].name, source.attributes[i].value);
             return target;
         }

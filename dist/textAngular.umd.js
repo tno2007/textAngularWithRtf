@@ -1032,7 +1032,7 @@ angular.module('textAngularSetup', [])
 @license textAngular
 Author : Austin Anderson
 License : 2013 MIT
-Version 1.5.17
+Version 1.5.18
 
 See README.md or https://github.com/fraywing/textAngular/wiki for requirements and use.
 */
@@ -2658,7 +2658,10 @@ function($document, taDOM, $log){
         },
 
         transferNodeAttributes: function(source, target){
-            if(!source.attributes) return ;
+            if(!source.attributes) {
+                console.log('source.attributes is undefined');
+                return;
+            }
             for(var i = 0; i < source.attributes.length; i++) target.setAttribute(source.attributes[i].name, source.attributes[i].value);
             return target;
         }

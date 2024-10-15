@@ -67,6 +67,12 @@ Added the ability to emit rtfcontent when using the ta-paste directive hook.
 # Changelog
 
 ## 14 October 2024
+## v1.5.19
+
+Added console log for when bullet-list issue occurs
+
+## 14 October 2024
+## v1.5.18
 
 Fix bullet list copy-paste issue
 

@@ -1,6 +1,6 @@
 {
   "name": "@tno2007/textangularwithrtf",
-  "version": "1.5.19",
+  "version": "1.5.21",
   "description": "A radically powerful Text-Editor/Wysiwyg editor for Angular.js",
   "maintainers": [
     {
@@ -20,7 +20,8 @@
   "homepage": "https://github.com/tno2007/textAngularWithRtf",
   "main": "./dist/textAngular.umd.js",
   "dependencies": {
-    "rangy": "^1.3.0"
+    "rangy": "^1.3.0",
+    "strip-comments": "^2.0.1"
   },
   "browserDependencies": {
     "angular": "^1.2.x",

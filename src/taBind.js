@@ -540,7 +540,7 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                     // all the code specific to contenteditable divs
                     var _processingPaste = false;
                     /* istanbul ignore next: phantom js cannot test this for some reason */
-                    var processpaste = function(text, textPlainContent, textRtfContent) {
+                    var processpaste = function(text, textPlainContent, textRtfContent, textHtmlContent) {
                        var _isOneNote = text!==undefined? text.match(/content=["']*OneNote.File/i): false;
                         /* istanbul ignore else: don't care if nothing pasted */
                         if(text && text.trim().length){
@@ -714,7 +714,7 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                 return result;
                             }).replace(/\n|\r\n|\r/g, '<br />').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
 
-                            if(_pasteHandler) text = _pasteHandler(scope, {$html: text, $textPlainContent: textPlainContent, $textRtfContent: textRtfContent}) || text;
+                            if(_pasteHandler) text = _pasteHandler(scope, {$html: text, $textPlainContent: textPlainContent, $textRtfContent: textRtfContent, $textHtmlContent: textHtmlContent}) || text;
 
                             // turn span vertical-align:super into <sup></sup>
                             text = text.replace(/<span style=("|')([^<]*?)vertical-align\s*:\s*super;?([^>]*?)("|')>([^<]+?)<\/span>/g, "<sup style='$2$3'>$5</sup>");
@@ -767,12 +767,19 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                             var textHtmlContent, textRtfContent, textPlainContent, filesContent, images;
 
                             // capture html content
-                            if (/text\/html/i.test(_types))
+                            if (/text\/html/i.test(_types)){
                                 textHtmlContent = clipboardData.getData("text/html");
+                            }
                     
                             // capture rtf content
                             if (/text\/rtf/i.test(_types))
                                 textRtfContent = clipboardData.getData("text/rtf");
+
+                            // if we have both html and rtf content, clean the html content
+                            // to prevent the console.log file:/// errors
+                            if(textHtmlContent && textRtfContent){
+                                textHtmlContent = cleanDocx.cleanDocx(textHtmlContent, textRtfContent);
+                            }
                     
                             // capture plain text content
                             if (/text\/plain/i.test(_types))
@@ -814,13 +821,11 @@ angular.module('textAngular.taBind', ['textAngular.factories', 'textAngular.DOM'
                                 textHtmlContent = "<span>" + textPlainContent + "</span>";
                             }
 
-                            processpaste(textHtmlContent, textPlainContent, textRtfContent);
+                            processpaste(textHtmlContent, textPlainContent, textRtfContent, textHtmlContent);
                             e.stopPropagation();
                             e.preventDefault();
                             return false;
                         } else {// Everything else - empty editdiv and allow browser to paste content into it, then cleanup
-
-                            console.log("Everything else");
 
                             var _savedSelection = rangy.saveSelection(),
                                 _tempDiv = angular.element('<div class="ta-hidden-input" contenteditable="true"></div>');
